@@ -1,6 +1,6 @@
 # GT7-WT32-SC01-PLUS-DASHBOARD
 
-Gran Turismo 7 simracing dashboard on a WT32-SC01-PLUS screen.
+Gran Turismo 7 telemetry dashboard on a WT32-SC01-PLUS screen.
 
 Use WiFiManager to configure the wifi on first start
 
