@@ -4,7 +4,6 @@
 #define LGFX_USE_V1
 #include <LovyanGFX.hpp>
 #include <conf_WT32SCO1-Plus.h>
-//  dashboard + free deck grafica
 #include "gt7.h"
 #include "lap.h"
 #include <Arduino.h>
@@ -30,9 +29,9 @@ static const int ROW[] = {0, CELL_HEIGHT, CELL_HEIGHT * 2, CELL_HEIGHT * 3, CELL
 std::map<String, String> prevData;
 std::map<String, int32_t> prevColor;
 
-int currentPage = 1; // Variabile per tenere traccia della pagina corrente
+int currentPage = 1;
 int totalPage = 4;
-bool forceUpdate = false; // Variabile per forzare l'aggiornamento delle celle
+bool forceUpdate = false;
 
 unsigned long previousP = 0;
 const long intervalP = 500;
@@ -49,20 +48,16 @@ class Display
 {
 public:
 	Packet packetContent;
-	// Global variables
+
 	int engineRpm = 50;
-	// int prev_rpmPercent = 50;
 	int maxAlertRPM = 90;
 	int minAlertRPM = 70;
 	String gear = "N";
-	// std::string
 	String prev_gear = "0";
 	int speed = 0;
 	String currentLapTime = "00:00.00";
 	String lastLapTime = "00:00.00";
 	String bestLapTime = "00.00.00";
-	// String sessionBestLiveDeltaSeconds = "0.000";
-	// String sessionBestLiveDeltaProgressSeconds = "0.00";
 
 	int tyreTemperatureFrontLeft = 0;
 	int tyreTemperatureFrontRight = 0;
@@ -76,7 +71,7 @@ public:
 	int brake = 0;	  // max 255
 	int throttle = 0; // max 255
 	int tireAlertTemp = 100;
-	uint16_t touchX, touchY; // definisce i due interi per gestione touchscreen
+	uint16_t touchX, touchY;
 
 public:
 	void setup()
@@ -100,17 +95,16 @@ public:
 			prevFuel = laps[size - 1].fuelLevel;
 			usedFuel = prevFuel - fuel;
 		}
-		// TODO used calculated fuelSued
+		// TODO used calculated fuelUsed
 		lap l(lapNum, packetContent.packetContent.lastLaptime, fuel, usedFuel);
 		laps.push_back(l);
 	}
 
-	// Called when new data is coming from computer
 	void read()
 	{
 		speed = ((int)((packetContent.packetContent.speed) * 3.6));
 		gear = packetContent.packetContent.gears & 0b00001111;
-		if (atoi(gear.c_str()) == 0) // not working
+		if (atoi(gear.c_str()) == 0)
 		{
 			gear = "N";
 		}
@@ -160,16 +154,15 @@ public:
 
 	String convertTime(int32_t toConvert)
 	{
-		int minutes = toConvert / 60000;		  // Partie des minutes
-		int seconds = (toConvert % 60000) / 1000; // Partie des secondes
+		int minutes = toConvert / 60000;
+		int seconds = (toConvert % 60000) / 1000;
 		int milliseconds = toConvert % 1000;
 
 		char formattedTime[12];
 		sprintf(formattedTime, "%02d:%02d:%03d", minutes, seconds, milliseconds);
 		return String(formattedTime);
 	}
-	// Called once per arduino loop, timing can't be predicted,
-	// but it's called between each command sent to the arduino
+
 	void loop()
 	{
 		static int lastPage = currentPage;
@@ -252,7 +245,7 @@ public:
 		drawTyre();
 	}
 
-	void drawPage2() // pagina pulsanti
+	void drawPage2()
 	{
 		drawCell(COL[0], ROW[1], bestLapTime, "bestLapTime", "Best Lap", "left", TFT_WHITE, 4, forceUpdate);
 		drawCell(COL[0], ROW[2], lastLapTime, "lastLapTime", "Last Lap", "left", TFT_WHITE, 4, forceUpdate);
@@ -270,17 +263,9 @@ public:
 
 	void drawPage4()
 	{
-		// test
-		// laps.clear();
-		// for (int i = 0; i < maxLapHistory; i++)
-		// {
-		// 	lap p(i, 334 + i, i > 0 ? 100 - (i * 10) : 100, i > 0 ? laps[i - 1].fuelLevel - 10 : 0);
-		// 	laps.push_back(p);
-		// }
-
 		if (updateLaps)
 		{
-			
+
 			tft.clear();
 			drawTable();
 			static const int TABLEROW[] = {38, 72, 104, 136, 168, 200, 230, 265, 297};
@@ -296,8 +281,7 @@ public:
 		}
 	}
 
-	void
-	drawTable()
+	void drawTable()
 	{
 		int h = 32;
 		tft.drawRoundRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 5, TFT_WHITE);
@@ -305,7 +289,6 @@ public:
 		{
 			tft.drawLine(0, i, SCREEN_WIDTH, i);
 		}
-		// tft.drawLine(COL[0], 0, COL[0], SCREEN_HEIGHT);
 		tft.drawLine(COL[1], 0, COL[1], SCREEN_HEIGHT);
 		tft.drawLine(COL[3], 0, COL[3], SCREEN_HEIGHT);
 		tft.drawLine(COL[4], 0, COL[4], SCREEN_HEIGHT);
@@ -336,7 +319,7 @@ public:
 	void drawGear(int32_t x, int32_t y)
 	{
 		// draw gear only when it changes
-		if (gear != prev_gear)
+		if (gear.compareTo(prev_gear) != 0)
 		{
 			tft.setTextColor(isDrawGearRpmRedRec() ? TFT_RED : TFT_YELLOW, TFT_BLACK);
 			tft.setTextSize(8);
