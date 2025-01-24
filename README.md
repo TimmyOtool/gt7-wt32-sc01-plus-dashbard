@@ -25,7 +25,7 @@ Main dashboard with
 
 Laps time with 
 * current lap time
-* last lap tiem
+* last lap time
 * best lap time
   
 ### Meters Dashboard
