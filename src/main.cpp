@@ -1,7 +1,5 @@
-// File: simpleserialprint.ino
 #include <FS.h>
 #include <Arduino.h>
-// #include <WiFi.h>
 #include <WiFiManager.h>
 
 #include <GT7UDPParser.h>
@@ -14,18 +12,71 @@
 
 Display display;
 
-String defaultIp="192.168.0.59";
-IPAddress ip; // Insert your PS4/5 IP address here
+IPAddress ip(0, 0, 0, 0);
 char ps5ipchar[16];
-
 unsigned long previousT = 0;
 const long interval = 500;
-bool shouldSaveConfig = false;
 
 GT7_UDP_Parser gt7Telem;
 Packet packetContent;
 
-WiFiManagerParameter ps5ip("ps5ip", "playstation5 ip", defaultIp.c_str(), 16);
+constexpr char heartbeatMsg = 'A';
+
+IPAddress getBroadcastAddress(IPAddress ip, IPAddress subnet)
+{
+  IPAddress broadcast;
+  for (int i = 0; i < 4; i++)
+  {
+    broadcast[i] = ip[i] | ~subnet[i];
+  }
+  return broadcast;
+}
+
+boolean discoverGT7()
+{
+
+  WiFiUDP udp;
+  int localPort = 33740;
+
+  int targetPort = 33739;
+  int timeout = 200;
+  IPAddress localIP = WiFi.localIP();
+  IPAddress subnetMask = WiFi.subnetMask();
+  IPAddress broadcastIP = getBroadcastAddress(localIP, subnetMask);
+
+  udp.begin(localPort);
+  int maxip = 255;
+  for (int i = 1; i < maxip; i++)
+  {
+    IPAddress targetIP = localIP;
+    targetIP[3] = i;
+
+    udp.beginPacket(targetIP, targetPort);
+    udp.write(heartbeatMsg);
+    udp.endPacket();
+    unsigned long startTime = millis();
+    tft.clear();
+    tft.setCursor(10, 10);
+    tft.println("try: " + targetIP.toString());
+    while (millis() - startTime < timeout)
+    {
+      int packetSize = udp.parsePacket();
+      if (packetSize > 0)
+      {
+        char response[packetSize];
+        udp.read(response, packetSize);
+        response[packetSize] = '\0';
+        tft.printf("PS5 Foung : %s\n", targetIP.toString().c_str());
+        ip = targetIP;
+        udp.stop();
+        return true;
+      }
+    }
+  }
+  udp.stop();
+  tft.println("PS5 not found");
+  return false;
+}
 
 void configModeCallback(WiFiManager *myWiFiManager)
 {
@@ -36,10 +87,14 @@ void configModeCallback(WiFiManager *myWiFiManager)
   tft.println(myWiFiManager->getConfigPortalSSID());
 }
 
-void saveConfigCallback()
-{
-  tft.println("Should save config");
-  shouldSaveConfig = true;
+void saveFS() {
+ if (SPIFFS.begin())
+  {
+      File configFile = SPIFFS.open("/config.json", FILE_WRITE);
+      DynamicJsonDocument json(1024);
+     // serializeJson()
+  }
+
 }
 
 void readFs()
@@ -65,7 +120,7 @@ void readFs()
         if (!deserializeError)
         {
           strcpy(ps5ipchar, json["ps5ip"]);
-          
+          ip.fromString(String(ps5ipchar));
         }
         else
         {
@@ -73,8 +128,12 @@ void readFs()
         }
         configFile.close();
       }
-    }else {
-      //createEmptyCOnfigFIle();
+    }
+    else
+    {
+      // File configFile = SPIFFS.open("/config.json", "w");
+      // DynamicJsonDocument json(1024);
+      // configFile.w
     }
   }
   else
@@ -82,32 +141,45 @@ void readFs()
     tft.println("failed to mount FS");
   }
 
-  String theip=String(ps5ipchar);
-  ip.fromString(theip);
-  //sleep(1);
-
+  // sleep(1);
 }
-
 void setup()
 {
   display.setup();
   tft.clear();
-    tft.pushImage(0, 0, 480, 320, image_data_480x320x16);
+  tft.pushImage(0, 0, 480, 320, image_data_480x320x16);
   Serial.begin(115200);
-  readFs();
+
   WiFiManager wm;
-  //wm.resetSettings();
+  // wm.resetSettings();
   wm.setAPCallback(configModeCallback);
-  wm.setSaveConfigCallback(saveConfigCallback);
-  wm.addParameter(&ps5ip);
   bool res;
 
   res = wm.autoConnect("Gt7-Dashboard");
-  // ip.fromString(ps5ip.getValue());
-  //sleep(2);
+
+  bool ps5ok = false;
+  // read old ps5 ip
+  readFs();
+  if (ip.toString().compareTo("0.0.0.0") != 0)
+  {
+    // TODO try ps5 access;
+    ps5ok = true;
+  }
+  if (!ps5ok)
+  {
+    // searching ps5
+    do
+    {
+      tft.clear();
+      tft.println("search gt7");
+    } while (!discoverGT7());
+    // ps5found
+    saveFS();
+  }
+
   tft.print("Waiting GT7 connexion at IP: ");
   tft.print(ip);
-  sleep(1);
+  sleep(2);
   gt7Telem.begin(ip);
   gt7Telem.sendHeartbeat();
   tft.clear();
@@ -115,6 +187,7 @@ void setup()
 
 void loop()
 {
+
   unsigned long currentT = millis();
   packetContent = gt7Telem.readData();
   display.packetContent = packetContent;
