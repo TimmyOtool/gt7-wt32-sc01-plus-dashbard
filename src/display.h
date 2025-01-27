@@ -283,6 +283,7 @@ public:
 
 	void drawTable()
 	{
+		tft.setTextColor(TFT_WHITE);
 		int h = 32;
 		tft.drawRoundRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 5, TFT_WHITE);
 		for (int i = h; i <= SCREEN_HEIGHT; i = i + h)
