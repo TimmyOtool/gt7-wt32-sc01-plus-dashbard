@@ -71,6 +71,24 @@ public:
 	int brake = 0;	  // max 255
 	int throttle = 0; // max 255
 	int tireAlertTemp = 100;
+	float tyreRadiusFrontLeft = 0;
+	float tyreRadiusFrontRight = 0;
+	float tyreRadiusRearLeft = 0;
+	float tyreRadiusRearRight = 0;
+
+	float suspHeightFrontLeft = 0;
+	float suspHeightFrontRight = 0;
+	float suspHeightRearLeft = 0;
+	float suspHeightRearRight = 0;
+
+	float oilPressure;
+	float waterTemp;
+	float oilTemp;
+	float BodyHeight;
+	float suspHeight[4];
+
+	int maxSpeed = 0;
+
 	uint16_t touchX, touchY;
 
 public:
@@ -118,6 +136,21 @@ public:
 		tyreTemperatureRearRight = packetContent.packetContent.tyreTemp[3];
 		fuel = packetContent.packetContent.fuelLevel;
 		lapCount = packetContent.packetContent.lapCount;
+		oilPressure = packetContent.packetContent.oilPressure;
+		oilTemp = packetContent.packetContent.oilTemp;
+		waterTemp = packetContent.packetContent.waterTemp;
+		BodyHeight = packetContent.packetContent.bodyHeight;
+
+		tyreRadiusFrontLeft = packetContent.packetContent.tyreRadius[0];
+		tyreRadiusFrontRight = packetContent.packetContent.tyreRadius[1];
+		tyreRadiusRearLeft = packetContent.packetContent.tyreRadius[2];
+		tyreRadiusRearRight = packetContent.packetContent.tyreRadius[3];
+
+		suspHeightFrontLeft = packetContent.packetContent.suspHeight[0];
+		suspHeightFrontRight = packetContent.packetContent.suspHeight[1];
+		suspHeightRearLeft = packetContent.packetContent.suspHeight[2];
+		suspHeightRearRight = packetContent.packetContent.suspHeight[3];
+		maxSpeed = packetContent.packetContent.calcMaxSpeed;
 
 		if (lapCount > 0)
 		{
@@ -255,10 +288,23 @@ public:
 
 	void drawPage3()
 	{
-		drawRpmMeter(0, 0, SCREEN_WIDTH, CELL_HEIGHT);
-		drawGear(COL[2], COL[1]);
-		drawBrakeOrThrottle(COL[0], ROW[3], SCREEN_WIDTH, CELL_HEIGHT, throttle, "throttle", TFT_GREEN);
-		drawBrakeOrThrottle(COL[0], ROW[4], SCREEN_WIDTH, CELL_HEIGHT, brake, "brake", TFT_RED);
+
+		//tyre temp and radius
+		// supension height
+		// maxCalcSpeed
+		drawCell(COL[0], ROW[0], String(fuel), "fuelLevel", "fuel Level", "center", TFT_WHITE, 4, forceUpdate);
+		drawCell(COL[1], ROW[0], String(waterTemp), "waterTemp", "water Temp", "center", TFT_WHITE, 4, forceUpdate);
+		drawCell(COL[4], ROW[0], String(BodyHeight), "BodyHeight", "Body Height", "center", TFT_WHITE, 4, forceUpdate);
+		drawCell(COL[0], ROW[1], String(oilPressure), "oilPressure", "oil Pressure", "center", TFT_WHITE, 4, forceUpdate);
+		drawCell(COL[1], ROW[1], String(oilTemp), "oilTemp", "oil Temp", "center", TFT_WHITE, 4, forceUpdate);
+		drawCell(COL[4], ROW[1], String(maxSpeed), "maxSpeed", "max Speed", "center", TFT_WHITE, 4, forceUpdate);
+
+		drawCell(COL[0], ROW[3], String(tyreTemperatureFrontLeft)+"    "+String(tyreRadiusFrontLeft)+"    "+String(suspHeightFrontLeft), "tyreTemperatureFrontLeft", "FL", "left", tyreTemperatureFrontLeft < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
+		drawCell(COL[3], ROW[3], String(tyreTemperatureFrontRight)+"    "+String(tyreRadiusFrontRight)+"    "+String(suspHeightFrontRight), "tyreTemperatureFrontRight", "FR", "left", tyreTemperatureFrontRight < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
+		drawCell(COL[0], ROW[4], String(tyreTemperatureRearLeft)+"    "+String(tyreRadiusRearLeft)+"    "+String(suspHeightRearLeft), "tyreTemperatureRearLeft", "RL", "left", tyreTemperatureRearLeft < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
+		drawCell(COL[3], ROW[4], String(tyreTemperatureRearRight)+"    "+String(tyreRadiusRearRight)+"    "+String(suspHeightRearRight), "tyreTemperatureRearRight", "RR", "left", tyreTemperatureRearRight < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
+
+
 	}
 
 	void drawPage4()
