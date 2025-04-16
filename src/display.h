@@ -4,12 +4,17 @@
 #define LGFX_USE_V1
 #include <LovyanGFX.hpp>
 #include <conf_WT32SCO1-Plus.h>
-#include "gt7.h"
+
 #include "lap.h"
 #include <Arduino.h>
 #include <map>
 #include <vector>
 #include <iostream>
+
+#ifdef ESP32
+#include <SPIFFS.h>
+#endif
+#include <FS.h>
 
 static LGFX tft;
 
@@ -26,11 +31,22 @@ static const int HALF_CELL_HEIGHT = CELL_HEIGHT / 2;
 static const int COL[] = {0, CELL_WIDTH, CELL_WIDTH * 2, CELL_WIDTH * 3, CELL_WIDTH * 4, CELL_WIDTH * 6, CELL_WIDTH * 7};
 static const int ROW[] = {0, CELL_HEIGHT, CELL_HEIGHT * 2, CELL_HEIGHT * 3, CELL_HEIGHT * 4, CELL_HEIGHT * 6, CELL_HEIGHT * 7};
 
+
+
+const int centerX = 120;  // Centre du compteur
+const int centerY = 120;  
+const int radius = 100;   // Rayon du compteur
+const int thickness = 10; // Épaisseur de l'arc
+const int startAngle = -135;  // Départ de l'arc
+const int endAngle = 135; 
+
+
+
 std::map<String, String> prevData;
 std::map<String, int32_t> prevColor;
 
 int currentPage = 1;
-int totalPage = 4;
+int totalPage = 5;
 bool forceUpdate = false;
 
 unsigned long previousP = 0;
@@ -183,6 +199,10 @@ public:
 
 		brake = packetContent.packetContent.brake;
 		throttle = packetContent.packetContent.throttle;
+
+
+
+
 	}
 
 	String convertTime(int32_t toConvert)
@@ -219,7 +239,9 @@ public:
 		case 4:
 			drawPage4();
 			break;
-
+		case 5:
+			drawPage5();
+			break;
 		default:
 			break;
 		}
@@ -289,9 +311,9 @@ public:
 	void drawPage3()
 	{
 
-		//tyre temp and radius
-		// supension height
-		// maxCalcSpeed
+		// tyre temp and radius
+		//  supension height
+		//  maxCalcSpeed
 		drawCell(COL[0], ROW[0], String(fuel), "fuelLevel", "fuel Level", "center", TFT_WHITE, 4, forceUpdate);
 		drawCell(COL[1], ROW[0], String(waterTemp), "waterTemp", "water Temp", "center", TFT_WHITE, 4, forceUpdate);
 		drawCell(COL[4], ROW[0], String(BodyHeight), "BodyHeight", "Body Height", "center", TFT_WHITE, 4, forceUpdate);
@@ -299,12 +321,10 @@ public:
 		drawCell(COL[1], ROW[1], String(oilTemp), "oilTemp", "oil Temp", "center", TFT_WHITE, 4, forceUpdate);
 		drawCell(COL[4], ROW[1], String(maxSpeed), "maxSpeed", "max Speed", "center", TFT_WHITE, 4, forceUpdate);
 
-		drawCell(COL[0], ROW[3], String(tyreTemperatureFrontLeft)+"    "+String(tyreRadiusFrontLeft)+"    "+String(suspHeightFrontLeft), "tyreTemperatureFrontLeft", "FL", "left", tyreTemperatureFrontLeft < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
-		drawCell(COL[3], ROW[3], String(tyreTemperatureFrontRight)+"    "+String(tyreRadiusFrontRight)+"    "+String(suspHeightFrontRight), "tyreTemperatureFrontRight", "FR", "left", tyreTemperatureFrontRight < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
-		drawCell(COL[0], ROW[4], String(tyreTemperatureRearLeft)+"    "+String(tyreRadiusRearLeft)+"    "+String(suspHeightRearLeft), "tyreTemperatureRearLeft", "RL", "left", tyreTemperatureRearLeft < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
-		drawCell(COL[3], ROW[4], String(tyreTemperatureRearRight)+"    "+String(tyreRadiusRearRight)+"    "+String(suspHeightRearRight), "tyreTemperatureRearRight", "RR", "left", tyreTemperatureRearRight < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
-
-
+		drawCell(COL[0], ROW[3], String(tyreTemperatureFrontLeft) + "    " + String(tyreRadiusFrontLeft) + "    " + String(suspHeightFrontLeft), "tyreTemperatureFrontLeft", "FL", "left", tyreTemperatureFrontLeft < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
+		drawCell(COL[3], ROW[3], String(tyreTemperatureFrontRight) + "    " + String(tyreRadiusFrontRight) + "    " + String(suspHeightFrontRight), "tyreTemperatureFrontRight", "FR", "left", tyreTemperatureFrontRight < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
+		drawCell(COL[0], ROW[4], String(tyreTemperatureRearLeft) + "    " + String(tyreRadiusRearLeft) + "    " + String(suspHeightRearLeft), "tyreTemperatureRearLeft", "RL", "left", tyreTemperatureRearLeft < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
+		drawCell(COL[3], ROW[4], String(tyreTemperatureRearRight) + "    " + String(tyreRadiusRearRight) + "    " + String(suspHeightRearRight), "tyreTemperatureRearRight", "RR", "left", tyreTemperatureRearRight < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
 	}
 
 	void drawPage4()
@@ -325,6 +345,150 @@ public:
 			}
 			updateLaps = false;
 		}
+	}
+
+	void drawArc(int speed)
+	{
+		// Efface l'ancien arc
+		tft.fillCircle(centerX, centerY, radius, TFT_BLACK);
+
+		// Convertir la vitesse en angle (ex: 0-100 km/h => -135° à 135°)
+		int angle = map(speed, 0, 100, startAngle, endAngle);
+
+		// Dessiner l'arc de cercle avec la vitesse actuelle
+		for (int a = startAngle; a <= angle; a += 5)
+		{ // Pas de 5° pour fluidité
+			float rad = a * DEG_TO_RAD;
+			int x = centerX + cos(rad) * radius;
+			int y = centerY + sin(rad) * radius;
+			tft.fillCircle(x, y, 3, TFT_RED); // Points rouges pour l'arc
+		}
+	}
+
+	void drawSpeedArc(int speed) {
+		static int oldAngle = startAngle;  // Garde en mémoire l'ancien angle
+	
+		int angle = map(speed, 0, 100, startAngle, endAngle);  // Conversion vitesse → angle
+	
+		// Effacer l'ancien arc (remettre en noir)
+		tft.drawArc(centerX, centerY, radius, radius - thickness, startAngle, oldAngle, TFT_BLACK);
+	
+		// Dessiner le nouvel arc
+		tft.drawArc(centerX, centerY, radius, radius - thickness, startAngle, angle, TFT_RED);
+	
+		oldAngle = angle;  // Mise à jour de l'angle précédent
+	}
+
+	void drawPage5()
+	{
+		//
+
+		
+
+		tft.setTextColor(TFT_LIGHTGREY);
+		tft.drawString("LAP", SCREEN_WIDTH - 140, 25, &fonts::DejaVu18);
+		tft.setTextColor(TFT_WHITE);
+		tft.drawRightString("00/00", SCREEN_WIDTH - 20, 21, &fonts::DejaVu24);
+
+		tft.setTextColor(TFT_LIGHTGREY);
+		tft.drawString("POS", SCREEN_WIDTH - 140, 70, &fonts::DejaVu18);
+		tft.setTextColor(TFT_WHITE);
+		tft.drawRightString("00/00", SCREEN_WIDTH - 20, 65, &fonts::DejaVu24);
+
+		tft.setTextColor(TFT_LIGHTGREY);
+		tft.drawString("RPM", SCREEN_WIDTH - 140, 110, &fonts::DejaVu18);
+		tft.setTextColor(TFT_WHITE);
+		tft.setTextColor(TFT_GREEN);
+		tft.drawRightString("0", SCREEN_WIDTH - 20, 106, &fonts::DejaVu24);
+		tft.setTextColor(TFT_WHITE);
+
+		tft.setTextSize(2);
+		
+		tft.drawCenterString("N", X_CENTER, 20, &fonts::DejaVu72);
+		tft.setTextSize(1);
+
+		tft.setTextColor(TFT_LIGHTGREY);
+		tft.drawCenterString("SPEED", X_CENTER, 150, &fonts::DejaVu18);
+		tft.setTextColor(TFT_WHITE);
+		tft.setTextColor(TFT_GREEN);
+		tft.drawCenterString("0", X_CENTER, 170, &fonts::DejaVu24);
+		tft.setTextColor(TFT_WHITE);
+
+		tft.drawRightString("LAST TIME", SCREEN_WIDTH - 20, 195, &fonts::DejaVu18);
+		tft.drawRightString("00:00:000", SCREEN_WIDTH - 20, 225, &fonts::DejaVu24);
+
+		tft.setTextColor(TFT_GREEN);
+		tft.drawRightString("BEST TIME", SCREEN_WIDTH - 20, 260, &fonts::DejaVu18);
+		tft.setTextColor(TFT_WHITE);
+		tft.drawRightString("00:00:000", SCREEN_WIDTH - 20, 290, &fonts::DejaVu24);
+
+
+		tft.setTextColor(TFT_LIGHTGREY);
+		tft.drawCenterString("FRONT", 60, 20, &fonts::DejaVu18);
+		tft.setTextColor(TFT_WHITE);
+		tft.setTextColor(TFT_GREEN);
+		tft.drawString("L", 20, 40, &fonts::DejaVu18);
+		tft.drawRightString("R", 130, 40, &fonts::DejaVu18);
+		tft.setTextColor(TFT_WHITE);
+		tft.fillRoundRect(20, 60, 50, 100, 5, TFT_BLUE);
+		tft.fillRoundRect(80, 60, 50, 100, 5, TFT_BLUE);
+
+		tft.setTextColor(TFT_LIGHTGREY);
+		tft.drawCenterString("REAR", 60, 180, &fonts::DejaVu18);
+		tft.setTextColor(TFT_WHITE);
+		tft.setTextColor(TFT_GREEN);
+		tft.drawString("L", 20, 200, &fonts::DejaVu18);
+		tft.drawRightString("R", 130, 200, &fonts::DejaVu18);
+		tft.setTextColor(TFT_WHITE);
+		tft.fillRoundRect(20, 220, 50, 100, 5, TFT_BLUE);
+		tft.fillRoundRect(80, 220, 50, 100, 5, TFT_BLUE);
+
+		//FUEL
+		tft.drawRightString("Fuel",210, 260, &fonts::DejaVu18);
+		tft.setTextColor(TFT_GREEN);
+		tft.drawRightString("0.0/0.0",290, 260, &fonts::DejaVu18);
+		tft.setTextColor(TFT_WHITE);
+		tft.fillRoundRect(170, 285, 120, 25, 5,TFT_LIGHTGREY);
+		tft.setTextColor(TFT_BLACK);
+		tft.drawCenterString("0.00%", 250, 290, &fonts::DejaVu18);
+		tft.setTextColor(TFT_WHITE);
+
+		//NONE
+		tft.fillRoundRect(145, 30, 15, 110, 5, TFT_LIGHTGREY);
+		//BRAKE
+		tft.fillRoundRect(165, 30, 15, 110, 5, TFT_LIGHTGREY);
+
+		//THROTTLE
+		tft.fillRoundRect(SCREEN_WIDTH - 185, 30, 20, 110, 5, TFT_LIGHTGREY);
+		//SEPARATOR
+		tft.fillRect(SCREEN_WIDTH - 160, 30, 5, 110, TFT_LIGHTGREY);
+		tft.fillRect(SCREEN_WIDTH - 160, 30, 10, 3, TFT_LIGHTGREY);
+		tft.fillRect(SCREEN_WIDTH - 160, 66, 10, 3, TFT_LIGHTGREY);
+		tft.fillRect(SCREEN_WIDTH - 160, 101, 10, 3, TFT_LIGHTGREY);
+		tft.fillRect(SCREEN_WIDTH - 160, 137, 10, 3, TFT_LIGHTGREY);
+
+
+		//RPM
+		tft.fillRoundRect(100, 5, 270, 10, 5, TFT_LIGHTGREY);
+
+		// if (SPIFFS.begin())
+		// {
+		// File fuel = SPIFFS.open("/fuel.png",FILE_READ);
+		// tft.drawPng(&fuel, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT,0, 0, 1);
+		// fuel.close();
+		// }
+
+
+		
+		//drawSpeedArc(250);
+		//drawArc(speed);
+		// tft.clear();
+		// if (SPIFFS.begin())
+		// {
+		// 	File gt7 = SPIFFS.open("/gt7.jpg", FILE_READ);
+		// 	tft.drawJpg(&gt7, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 1);
+		// 	gt7.close();
+		// }
 	}
 
 	void drawTable()

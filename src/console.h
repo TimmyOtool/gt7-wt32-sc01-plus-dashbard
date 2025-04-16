@@ -1,5 +1,5 @@
 #ifndef __CONSOLE_H__
-#define __DISPLAY_H__
+#define __CONSOLE_H__
 
 #ifdef ESP32
 #include <SPIFFS.h>
