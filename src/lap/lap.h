@@ -1,5 +1,5 @@
-#ifndef FUEL_H
-#define FUEL_H
+#ifndef LAP_H
+#define LAP_H
 
 #include <inttypes.h>
 
