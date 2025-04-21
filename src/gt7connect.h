@@ -43,9 +43,9 @@ IPAddress discoverGT7()
         udp.write(heartbeatMsg);
         udp.endPacket();
         unsigned long startTime = millis();
-        tft.clear();
-        tft.setCursor(10, 10);
-        tft.println("try: " + targetIP.toString());
+        tft.fillRect(0,0, SCREEN_WIDTH, 30, TFT_RED);
+        tft.setTextColor(TFT_WHITE);
+        tft.drawCenterString("try at "+targetIP.toString(), SCREEN_WIDTH/2, 10, &fonts::DejaVu12);
         while (millis() - startTime < timeout)
         {
             int packetSize = udp.parsePacket();
@@ -54,21 +54,41 @@ IPAddress discoverGT7()
                 char response[packetSize];
                 udp.read(response, packetSize);
                 response[packetSize] = '\0';
-                tft.printf("PS5 Found : %s\n", targetIP.toString().c_str());
+                //tft.printf("PS5 Found : %s\n", targetIP.toString().c_str());
                 udp.stop();
                 return targetIP;
             }
         }
     }
     udp.stop();
-    tft.println("PS5 not found");
 
     return ip;
 }
 
-bool checkConsole(IPAddress ip)
+bool checkGT7(IPAddress ip)
 {
-    return true;
+    WiFiUDP udp;
+    int localPort = 33740;
+    int targetPort = 33739;
+    int timeout = 200;
+
+    udp.begin(localPort);
+    udp.beginPacket(ip, targetPort);
+    udp.write(heartbeatMsg);
+    udp.endPacket();
+    unsigned long startTime = millis();
+    while (millis() - startTime < timeout)
+    {
+        int packetSize = udp.parsePacket();
+        if (packetSize > 0)
+        {
+            char response[packetSize];
+            udp.read(response, packetSize);
+            response[packetSize] = '\0';
+            return true;
+        }
+    }
+    return false;
 }
 
 void saveFS(IPAddress ip)
@@ -88,7 +108,6 @@ IPAddress readFs()
     IPAddress ip(0, 0, 0, 0);
     if (SPIFFS.begin())
     {
-        // tft.println("mounted file system");
         if (SPIFFS.exists("/config.json"))
         {
             // file exists, reading and loading
@@ -110,10 +129,6 @@ IPAddress readFs()
                     ip.fromString(String(ps5ipchar));
                     return ip;
                 }
-                else
-                {
-                    // tft.println("failed to load json config");
-                }
                 configFile.close();
             }
         }
@@ -123,7 +138,6 @@ IPAddress readFs()
         tft.println("failed to mount FS");
     }
     return ip;
-    // sleep(1);
 }
 
 #endif

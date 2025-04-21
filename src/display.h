@@ -4,6 +4,7 @@
 #define LGFX_USE_V1
 #include <LovyanGFX.hpp>
 #include <conf_WT32SCO1-Plus.h>
+//#include <conf_JC3248W535EN.h>
 
 #include "lap/lap.h"
 #include <Arduino.h>
@@ -152,7 +153,7 @@ public:
 		fuel = packetContent.packetContent.fuelLevel;
 		fuelCapacity = packetContent.packetContent.fuelCapacity;
 		lapCount = packetContent.packetContent.lapCount;
-		boost = packetContent.packetContent.boost;
+		boost = packetContent.packetContent.boost - 1;
 		oilPressure = packetContent.packetContent.oilPressure;
 		oilTemp = packetContent.packetContent.oilTemp;
 		waterTemp = packetContent.packetContent.waterTemp;
@@ -346,18 +347,22 @@ public:
 		drawDataString(SCREEN_WIDTH - 20, 65, "position", String(RaceStartPosition) + "/" + String(preRaceNumCars), "right", TFT_BLACK, TFT_WHITE, &fonts::DejaVu24);
 
 		// rpm
-		int colerRpm = TFT_GREEN;
-		if(engineRpm >= minAlertRPM)
+		int couleurRpm = TFT_GREEN;
+		if (engineRpm > (minAlertRPM - 100) && engineRpm <= minAlertRPM)
 		{
-			colerRpm = TFT_ORANGE;
+			couleurRpm = TFT_BLUE;
+		}
+		if (engineRpm >= minAlertRPM)
+		{
+			couleurRpm = TFT_ORANGE;
 		}
 		if (engineRpm >= maxAlertRPM)
 		{
-			colerRpm = TFT_RED;
+			couleurRpm = TFT_RED;
 		}
 		tft.setTextColor(TFT_LIGHTGREY);
 		tft.drawString("RPM", SCREEN_WIDTH - 140, 110, &fonts::DejaVu18);
-		drawDataString(SCREEN_WIDTH - 20, 106, "rpm", String(engineRpm), "right", TFT_BLACK, colerRpm, &fonts::DejaVu24);
+		drawDataString(SCREEN_WIDTH - 20, 106, "rpm", String(engineRpm), "right", TFT_BLACK, couleurRpm, &fonts::DejaVu24);
 		// tft.setTextColor(TFT_WHITE);
 
 		// gear
@@ -370,10 +375,10 @@ public:
 		tft.drawCenterString("SPEED", X_CENTER, 150, &fonts::DejaVu18);
 		drawDataString(X_CENTER, 170, "speed", String(speed), "center", TFT_BLACK, TFT_GREEN, &fonts::DejaVu24);
 
-		// currenttime
-		tft.setTextColor(TFT_WHITE);
-		tft.drawRightString("CURRENT TIME", SCREEN_WIDTH - 20, 145, &fonts::DejaVu18);
-		drawDataString(SCREEN_WIDTH - 20, 170, "currentLapTime", currentLapTime, "right", TFT_BLACK, TFT_GREEN);
+		// // currenttime
+		// tft.setTextColor(TFT_WHITE);
+		// tft.drawRightString("CURRENT TIME", SCREEN_WIDTH - 20, 148, &fonts::DejaVu18);
+		// drawDataString(SCREEN_WIDTH - 20, 173, "currentLapTime", currentLapTime, "right", TFT_BLACK, TFT_GREEN);
 
 		// lasttime
 		tft.setTextColor(TFT_WHITE);
@@ -392,8 +397,8 @@ public:
 		tft.drawString("L", 20, 40, &fonts::DejaVu18);
 		tft.drawRightString("R", 130, 40, &fonts::DejaVu18);
 		tft.setTextColor(TFT_WHITE);
-		tft.fillRoundRect(20, 60, 50, 100, 5, TFT_BLUE);
-		tft.fillRoundRect(80, 60, 50, 100, 5, TFT_BLUE);
+		tft.fillRoundRect(20, 60, 50, 100, 5, getTyreColor(tyreTemperatureFrontLeft));
+		tft.fillRoundRect(80, 60, 50, 100, 5, getTyreColor(tyreTemperatureFrontRight));
 		drawDataString(45, 140, "tyreTemperatureFrontLeft", String(tyreTemperatureFrontLeft) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
 		// tft.drawCenterString(String(tyreTemperatureFrontLeft) + "C", 45, 140, &fonts::DejaVu12);
 		drawDataString(105, 140, "tyreTemperatureFrontRight", String(tyreTemperatureFrontRight) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
@@ -406,21 +411,26 @@ public:
 		tft.drawString("L", 20, 200, &fonts::DejaVu18);
 		tft.drawRightString("R", 130, 200, &fonts::DejaVu18);
 		tft.setTextColor(TFT_WHITE);
-		tft.fillRoundRect(20, 220, 50, 100, 5, TFT_BLUE);
-		tft.fillRoundRect(80, 220, 50, 100, 5, TFT_BLUE);
+		tft.fillRoundRect(20, 220, 50, 100, 5, getTyreColor(tyreTemperatureRearLeft));
+		tft.fillRoundRect(80, 220, 50, 100, 5, getTyreColor(tyreTemperatureRearRight));
 		drawDataString(45, 300, "tyreTemperatureRearLeft", String(tyreTemperatureRearLeft) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
 		// tft.drawCenterString(String(tyreTemperatureRearLeft)+"C",45,300,&fonts::DejaVu12);
 		drawDataString(105, 300, "tyreTemperatureRearRight", String(tyreTemperatureRearRight) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
 		// tft.drawCenterString(String(tyreTemperatureRearRight)+"C",105,300,&fonts::DejaVu12);
 
 		// FUEL
-		tft.drawRightString("Fuel", 210, 260, &fonts::DejaVu18);
+		tft.drawRightString("Fuel", 200, 260, &fonts::DejaVu18);
 		tft.setTextColor(TFT_GREEN);
-		drawDataString(310, 260, "fuel1", String(fuel) + "/" + String(fuelCapacity), "right", TFT_BLACK, TFT_GREEN, &fonts::DejaVu18);
+		drawDataString(310, 262, "fuel1", String(fuel) + "/" + String(fuelCapacity), "right", TFT_BLACK, TFT_GREEN, &fonts::DejaVu12);
 		tft.setTextColor(TFT_WHITE);
 		tft.fillRoundRect(170, 285, 130, 25, 5, TFT_LIGHTGREY);
+		int fuelWidth = getPercentageWidth(fuel, fuelCapacity, 130);
 		tft.setTextColor(TFT_BLACK);
-		drawDataString(250, 290, "fuel", "0.00%", "center", TFT_WHITE, TFT_BLACK, &fonts::DejaVu18);
+		if (fuelWidth >= 0 && fuelWidth <= 130)
+		{
+			tft.fillRoundRect(170, 285, 130 - fuelWidth, 25, 5, TFT_GREEN);
+		}
+		drawDataString(250, 290, "fuel", String(fuel) + "%", "center", TFT_WHITE, TFT_BLACK, &fonts::DejaVu18);
 		tft.setTextColor(TFT_WHITE);
 
 		// NONE
@@ -434,18 +444,69 @@ public:
 		tft.fillRoundRect(SCREEN_WIDTH - 185, 30, 20, 110, 5, TFT_LIGHTGREY);
 		int throttleWidth = getPercentageWidth(throttle, 255, 110);
 		tft.fillRoundRect(SCREEN_WIDTH - 185, 30 + throttleWidth, 20, 110 - throttleWidth, 5, TFT_GREEN);
-		// SEPARATOR
+
+		// BOOST
+		if (dataChange("boost", String(boost)))
+		{
+			tft.fillSmoothCircle(SCREEN_WIDTH - 160, calculatePosition(prevData["boost"].toFloat()), 5, TFT_BLACK);
+			prevData["boost"] = String(boost);
+		}
+
 		tft.fillRect(SCREEN_WIDTH - 160, 30, 5, 110, TFT_LIGHTGREY);
 		tft.fillRect(SCREEN_WIDTH - 160, 30, 10, 3, TFT_LIGHTGREY);
 		tft.fillRect(SCREEN_WIDTH - 160, 66, 10, 3, TFT_LIGHTGREY);
 		tft.fillRect(SCREEN_WIDTH - 160, 101, 10, 3, TFT_LIGHTGREY);
 		tft.fillRect(SCREEN_WIDTH - 160, 137, 10, 3, TFT_LIGHTGREY);
 
+		tft.fillSmoothCircle(SCREEN_WIDTH - 160, calculatePosition(boost), 5, TFT_RED);
+
 		// RPM
 		tft.fillRoundRect(100, 5, 270, 10, 5, TFT_LIGHTGREY);
 		int rpmWidth = getPercentageWidth(engineRpm, maxAlertRPM, 270);
+		if (rpmWidth < 0 || rpmWidth > 270)
+		{
+			rpmWidth = 0;
+		}
 
-		tft.fillRoundRect(100, 5, 270-rpmWidth, 10, 5, colerRpm);
+		tft.fillRoundRect(100, 5, 270 - rpmWidth, 10, 5, couleurRpm);
+	}
+
+	int calculatePosition(float boost)
+	{
+		// Points de référence
+		float x[] = {-1, 0, 1, 2};	  // Boost values
+		int y[] = {30, 66, 103, 137}; // Corresponding positions
+
+		// Vérifier si boost est en dehors des limites
+		if (boost <= x[0])
+			return y[0];
+		if (boost >= x[3])
+			return y[3];
+
+		// Trouver les deux points entre lesquels boost se situe
+		for (int i = 0; i < 3; i++)
+		{
+			if (boost >= x[i] && boost <= x[i + 1])
+			{
+				// Interpolation linéaire
+				return y[i] + (boost - x[i]) * (y[i + 1] - y[i]) / (x[i + 1] - x[i]);
+			}
+		}
+
+		return 0; // Valeur par défaut (ne devrait jamais arriver)
+	}
+
+	int getTyreColor(int value)
+	{
+		if (value > tireAlertTemp && value < (tireAlertTemp + 50))
+		{
+			return TFT_ORANGE;
+		}
+		if (value >= (tireAlertTemp + 50))
+		{
+			return TFT_RED;
+		}
+		return TFT_BLUE;
 	}
 
 	int getPercentageWidth(int value, int max, int width)
@@ -454,9 +515,18 @@ public:
 		return width - (width * percent);
 	}
 
+	boolean dataChange(String name, String value)
+	{
+		if (prevData[name] != value || forceUpdate)
+		{
+			return true;
+		}
+		return false;
+	}
+
 	void drawDataString(int32_t x, int32_t y, String name, String text, String align = "center", int32_t colorClear = TFT_BLACK, int32_t color = TFT_WHITE, const lgfx::v1::IFont *font = &fonts::DejaVu24)
 	{
-		if (prevData[name] != text || forceUpdate)
+		if (dataChange(name, text))
 		{
 			tft.setTextColor(colorClear);
 			if (align == "left")
