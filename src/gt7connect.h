@@ -45,7 +45,7 @@ IPAddress discoverGT7()
         unsigned long startTime = millis();
         tft.fillRect(0,0, SCREEN_WIDTH, 30, TFT_RED);
         tft.setTextColor(TFT_WHITE);
-        tft.drawCenterString("try at "+targetIP.toString(), SCREEN_WIDTH/2, 10, &fonts::DejaVu12);
+        tft.drawCenterString("try GT7 at "+targetIP.toString(), SCREEN_WIDTH/2, 10, &fonts::DejaVu12);
         while (millis() - startTime < timeout)
         {
             int packetSize = udp.parsePacket();

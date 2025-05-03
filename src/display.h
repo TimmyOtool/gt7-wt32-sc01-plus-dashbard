@@ -4,7 +4,7 @@
 #define LGFX_USE_V1
 #include <LovyanGFX.hpp>
 #include <conf_WT32SCO1-Plus.h>
-//#include <conf_JC3248W535EN.h>
+// #include <conf_JC3248W535EN.h>
 
 #include "lap/lap.h"
 #include <Arduino.h>
@@ -43,7 +43,7 @@ std::map<String, String> prevData;
 std::map<String, int32_t> prevColor;
 
 int currentPage = 1;
-int totalPage = 4;
+int totalPage = 5;
 bool forceUpdate = false;
 
 unsigned long previousP = 0;
@@ -111,7 +111,7 @@ public:
 	void setup()
 	{
 		tft.init();
-		tft.setRotation(3);
+		tft.setRotation(1);
 		tft.fillScreen(TFT_BLACK);
 	}
 
@@ -142,6 +142,11 @@ public:
 		{
 			gear = "R";
 		}
+		if (atoi(gear.c_str()) == -1)
+		{
+			gear = "N";
+		}
+
 		lastLapTime = convertTime(packetContent.packetContent.lastLaptime);
 
 		bestLapTime = convertTime(packetContent.packetContent.bestLaptime);
@@ -226,16 +231,19 @@ public:
 		switch (currentPage)
 		{
 		case 1:
-			drawPage1(forceUpdate);
+			drawPageDashboard1(forceUpdate);
 			break;
 		case 2:
-			drawPage2();
+			drawPageCarInfo();
 			break;
 		case 3:
-			drawPage3();
+			drawPageTableLaps();
 			break;
 		case 4:
-			drawPage4(forceUpdate);
+			drawPageDashboard2(forceUpdate);
+			break;
+		case 5:
+			drawCreditPage(forceUpdate);
 			break;
 		default:
 			break;
@@ -249,13 +257,48 @@ public:
 			{
 				previousP = currentP;
 				updateLaps = true;
-				if (touchX <= X_CENTER)
+				if(checkButton(X_CENTER - 100, 70, 180, 50) && currentPage == 5)
+				{
+					tft.fillScreen(TFT_BLACK);
+					tft.drawCenterString("Rebooting...", X_CENTER, Y_CENTER, &fonts::DejaVu12);
+					sleep(1);
+					tft.fillScreen(TFT_BLACK);
+					ESP.restart();
+				}
+				if(checkButton(X_CENTER - 100, Y_CENTER + 70, 200, 50) && currentPage == 5)
+				{
+					WiFi.mode(WIFI_STA);
+					WiFi.disconnect();
+					WiFiManager wm;
+					wm.resetSettings();
+					tft.fillScreen(TFT_BLACK);
+					tft.drawCenterString("Reset...", X_CENTER, Y_CENTER, &fonts::DejaVu12);
+					sleep(1);
+					tft.fillScreen(TFT_BLACK);
+					ESP.restart();
+
+				}
+				if (touchX <= X_CENTER / 2)
 				{
 					currentPage--;
 				}
-				else
+				else if (touchX >= X_CENTER * 1.5)
 				{
 					currentPage++;
+				}
+				else
+				{
+					if (currentPage == 3)
+					{
+						laps.clear();
+						tft.clear();
+						tft.fillScreen(TFT_RED);
+						tft.drawCenterString("Laps cleared", X_CENTER, Y_CENTER, &fonts::DejaVu12);
+						sleep(1);
+						tft.clear();
+						updateLaps = true;
+					}
+
 				}
 				if (currentPage > totalPage)
 				{
@@ -271,7 +314,43 @@ public:
 
 	void idle() {}
 
-	void drawPage4(bool forceUpdate = false)
+	//draw a button whith a label
+	void drawButton(int x, int y, int w, int h, String label, uint16_t color = TFT_WHITE)
+	{
+		tft.fillRoundRect(x, y, w, h, 5,color);
+		tft.setTextColor(TFT_WHITE);
+		tft.drawCenterString(label, x + (w / 2), y + (h / 2), &fonts::DejaVu12);
+	}
+	// check if click on a button
+	bool checkButton(int x, int y, int w, int h)
+	{
+		if (touchX >= x && touchX <= x + w && touchY >= y && touchY <= y + h)
+		{
+			return true;
+		}
+		return false;
+	}
+
+
+
+	void drawCreditPage(bool forceUpdate = false)
+	{
+		if (forceUpdate)
+		{
+			tft.fillScreen(TFT_BLACK);
+			tft.setTextColor(TFT_WHITE);
+			drawButton(X_CENTER - 100, 70, 180, 50, "Reboot", TFT_DARKGRAY);
+			tft.drawCenterString("GT7 Dashboard", X_CENTER, Y_CENTER - 20, &fonts::DejaVu12);
+			tft.drawCenterString("by", X_CENTER, Y_CENTER + 10, &fonts::DejaVu12);
+			tft.drawCenterString("BSR_Melinm", X_CENTER, Y_CENTER + 30, &fonts::DejaVu12);
+			tft.drawCenterString("2025", X_CENTER, Y_CENTER + 50, &fonts::DejaVu12);
+			drawButton(X_CENTER - 100, Y_CENTER + 70, 180, 50, "Reset Settings", TFT_RED);
+			
+			//tft.drawCenterString("Press Middle to reset AP and Upload firmware", X_CENTER, Y_CENTER + 70, &fonts::DejaVu12);
+		}
+	}
+
+	void drawPageDashboard2(bool forceUpdate = false)
 	{
 		drawRpmMeter(0, 0, SCREEN_WIDTH, CELL_HEIGHT);
 		drawGear(COL[2], COL[1]);
@@ -295,7 +374,7 @@ public:
 		drawTyre();
 	}
 
-	void drawPage2()
+	void drawPageCarInfo()
 	{
 
 		// tyre temp and radius
@@ -314,7 +393,7 @@ public:
 		drawCell(COL[3], ROW[4], String(tyreTemperatureRearRight) + "    " + String(tyreRadiusRearRight) + "    " + String(suspHeightRearRight), "tyreTemperatureRearRight", "RR", "left", tyreTemperatureRearRight < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
 	}
 
-	void drawPage3()
+	void drawPageTableLaps()
 	{
 		if (updateLaps)
 		{
@@ -334,7 +413,7 @@ public:
 		}
 	}
 
-	void drawPage1(bool forceUpdate = false)
+	void drawPageDashboard1(bool forceUpdate = false)
 	{
 		// lap
 		tft.setTextColor(TFT_LIGHTGREY);

@@ -53,6 +53,7 @@ void setup()
     tft.drawJpg(&gt7, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 1);
    // tft.drawPng(&azerty, 10 , 130, 150, 150, 0, 0, 1);
     tft.drawPng(&bsr, (SCREEN_WIDTH / 2) +40 , 130, 216, 216, 0, 0, 1);
+    tft.drawString("By BSR_Melinm", 5, 305, &fonts::DejaVu12);
     gt7.close();
     bsr.close();
     //azerty.close();
@@ -67,7 +68,11 @@ void setup()
   IPAddress psFind;
   if (fromJson.toString().compareTo("0.0.0.0") != 0)
   {
-    ps5ok = false; // set to true to bypass during dev
+    #ifdef DEBUG_PS5
+      ps5ok = true; // set to true to bypass during dev
+    #else
+      ps5ok = false;
+    #endif
     for (int i = 0; i < 5 && !ps5ok; i++)
     {
 
@@ -104,7 +109,7 @@ void setup()
   sleep(3);
   gt7Telem.begin(ip);
   gt7Telem.sendHeartbeat();
-
+  
   tft.clear();
 }
 

@@ -11,7 +11,9 @@ public:
     float fuelLevel;
     float fuelUsed;
 
+
     lap();
     lap(int lapNumber, int32_t time, float fuel,float fuelUsed);
+    
 };
 #endif
