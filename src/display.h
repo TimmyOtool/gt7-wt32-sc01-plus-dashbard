@@ -32,12 +32,10 @@ static const int HALF_CELL_HEIGHT = CELL_HEIGHT / 2;
 static const int COL[] = {0, CELL_WIDTH, CELL_WIDTH * 2, CELL_WIDTH * 3, CELL_WIDTH * 4, CELL_WIDTH * 6, CELL_WIDTH * 7};
 static const int ROW[] = {0, CELL_HEIGHT, CELL_HEIGHT * 2, CELL_HEIGHT * 3, CELL_HEIGHT * 4, CELL_HEIGHT * 6, CELL_HEIGHT * 7};
 
-
 std::map<String, String> prevData;
 std::map<String, int32_t> prevColor;
 
 int currentPage = 1;
-int totalPage = 6;
 bool forceUpdate = false;
 
 unsigned long previousP = 0;
@@ -50,7 +48,6 @@ int prev_rpmPercent = 0;
 bool updateLaps = false;
 std::vector<lap> laps;
 int maxLapHistory = 9;
-
 
 class Display
 {
@@ -106,7 +103,26 @@ public:
 
 	uint16_t touchX, touchY;
 
+	using PageFunc = std::function<void()>;
+
+	std::vector<PageFunc> pages;
+
 public:
+	Display()
+	{
+		pages.push_back([this]()
+						{ drawPageDashboard1(forceUpdate); });
+		pages.push_back([this]()
+						{ drawPageCarInfo(); });
+		pages.push_back([this]()
+						{ drawPageTableLaps(); });
+		// pages.push_back([this]()
+		// 				{ drawPageDashboard2(forceUpdate); });
+		pages.push_back([this]()
+						{ drawCreditPage(forceUpdate); });
+		pages.push_back([this]()
+						{ drawDebugPage(); });
+	}
 	void setup()
 	{
 		tft.init();
@@ -227,28 +243,10 @@ public:
 			forceUpdate = true;
 			lastPage = currentPage;
 		}
-		switch (currentPage)
+		int pageIdx = currentPage - 1;
+		if (pageIdx >= 0 && pageIdx < pages.size())
 		{
-		case 1:
-			drawPageDashboard1(forceUpdate);
-			break;
-		case 2:
-			drawPageCarInfo();
-			break;
-		case 3:
-			drawPageTableLaps();
-			break;
-		case 4:
-			drawPageDashboard2(forceUpdate);
-			break;
-		case 5:
-			drawCreditPage(forceUpdate);
-			break;
-		case 6:
-			drawDebugPage();
-			break;
-		default:
-			break;
+			pages[pageIdx]();
 		}
 
 		forceUpdate = false;
@@ -259,7 +257,7 @@ public:
 			{
 				previousP = currentP;
 				updateLaps = true;
-				if(checkButton(X_CENTER - 100, 70, 180, 50) && currentPage == 5)
+				if (checkButton(X_CENTER - 100, 70, 180, 50) && currentPage == 5)
 				{
 					tft.fillScreen(TFT_BLACK);
 					tft.drawCenterString("Rebooting...", X_CENTER, Y_CENTER, &fonts::DejaVu12);
@@ -267,7 +265,7 @@ public:
 					tft.fillScreen(TFT_BLACK);
 					ESP.restart();
 				}
-				if(checkButton(X_CENTER - 100, Y_CENTER + 70, 200, 50) && currentPage == 5)
+				if (checkButton(X_CENTER - 100, Y_CENTER + 70, 200, 50) && currentPage == 5)
 				{
 					WiFi.mode(WIFI_STA);
 					WiFi.disconnect();
@@ -278,7 +276,6 @@ public:
 					sleep(1);
 					tft.fillScreen(TFT_BLACK);
 					ESP.restart();
-
 				}
 				if (touchX <= X_CENTER / 2)
 				{
@@ -300,15 +297,14 @@ public:
 						tft.clear();
 						updateLaps = true;
 					}
-
 				}
-				if (currentPage > totalPage)
+				if (currentPage > pages.size())
 				{
 					currentPage = 1;
 				}
 				else if (currentPage < 1)
 				{
-					currentPage = totalPage;
+					currentPage = pages.size();
 				}
 			}
 		}
@@ -316,10 +312,10 @@ public:
 
 	void idle() {}
 
-	//draw a button whith a label
+	// draw a button whith a label
 	void drawButton(int x, int y, int w, int h, String label, uint16_t color = TFT_WHITE)
 	{
-		tft.fillRoundRect(x, y, w, h, 5,color);
+		tft.fillRoundRect(x, y, w, h, 5, color);
 		tft.setTextColor(TFT_WHITE);
 		tft.drawCenterString(label, x + (w / 2), y + (h / 2), &fonts::DejaVu12);
 	}
@@ -333,31 +329,26 @@ public:
 		return false;
 	}
 
-
 	void drawDebugPage()
 	{
 		if (forceUpdate)
 		{
-		tft.fillScreen(TFT_BLACK);
-		tft.setTextColor(TFT_WHITE);
-		//draw all Wifi info
-		tft.drawString("SSID: " + String(WiFi.SSID()), 10, 10, &fonts::DejaVu12);
-		tft.drawString("IP: " + String(WiFi.localIP().toString()), 10, 30, &fonts::DejaVu12);
-		tft.drawString("Signal: " + String(WiFi.RSSI()), 10, 50, &fonts::DejaVu12);
-		tft.drawString("Channel: " + String(WiFi.channel()), 10, 70, &fonts::DejaVu12);
-		tft.drawString("MAC: " + String(WiFi.macAddress()), 10, 90, &fonts::DejaVu12);
-		tft.drawString("Subnet: " + String(WiFi.subnetMask().toString()), 10, 130, &fonts::DejaVu12);
-		tft.drawString("DNS: " + String(WiFi.dnsIP().toString()), 10, 150, &fonts::DejaVu12);
-		tft.drawString("Mode: " + String(WiFi.getMode()), 10, 170, &fonts::DejaVu12);
-		tft.drawString("Status: " + String(WiFi.status()), 10, 190, &fonts::DejaVu12);
-		tft.drawString("Hostname: " + String(WiFi.getHostname()), 10, 210, &fonts::DejaVu12);
+			tft.fillScreen(TFT_BLACK);
+			tft.setTextColor(TFT_WHITE);
+			// draw all Wifi info
+			tft.drawString("SSID: " + String(WiFi.SSID()), 10, 10, &fonts::DejaVu12);
+			tft.drawString("IP: " + String(WiFi.localIP().toString()), 10, 30, &fonts::DejaVu12);
+			tft.drawString("Signal: " + String(WiFi.RSSI()), 10, 50, &fonts::DejaVu12);
+			tft.drawString("Channel: " + String(WiFi.channel()), 10, 70, &fonts::DejaVu12);
+			tft.drawString("MAC: " + String(WiFi.macAddress()), 10, 90, &fonts::DejaVu12);
+			tft.drawString("Subnet: " + String(WiFi.subnetMask().toString()), 10, 130, &fonts::DejaVu12);
+			tft.drawString("DNS: " + String(WiFi.dnsIP().toString()), 10, 150, &fonts::DejaVu12);
+			tft.drawString("Mode: " + String(WiFi.getMode()), 10, 170, &fonts::DejaVu12);
+			tft.drawString("Status: " + String(WiFi.status()), 10, 190, &fonts::DejaVu12);
+			tft.drawString("Hostname: " + String(WiFi.getHostname()), 10, 210, &fonts::DejaVu12);
 
-		tft.drawString("PS5 ip: " + String(ip.toString()), 10, 250, &fonts::DejaVu12);
-		
-
-
+			tft.drawString("PS5 ip: " + String(ip.toString()), 10, 250, &fonts::DejaVu12);
 		}
-
 	}
 
 	void drawCreditPage(bool forceUpdate = false)
@@ -372,8 +363,6 @@ public:
 			tft.drawCenterString("BSR_Melinm", X_CENTER, Y_CENTER + 30, &fonts::DejaVu12);
 			tft.drawCenterString("2025", X_CENTER, Y_CENTER + 50, &fonts::DejaVu12);
 			drawButton(X_CENTER - 100, Y_CENTER + 70, 180, 50, "Reset Settings", TFT_RED);
-
-			//tft.drawCenterString("Press Middle to reset AP and Upload firmware", X_CENTER, Y_CENTER + 70, &fonts::DejaVu12);
 		}
 	}
 
@@ -421,7 +410,6 @@ public:
 		drawCell(COL[3], ROW[3], String(tyreTemperatureFrontRight) + "    " + String(tyreRadiusFrontRight) + "    " + String(suspHeightFrontRight), "tyreTemperatureFrontRight", "FR", "left", tyreTemperatureFrontRight < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
 		drawCell(COL[0], ROW[4], String(tyreTemperatureRearLeft) + "    " + String(tyreRadiusRearLeft) + "    " + String(suspHeightRearLeft), "tyreTemperatureRearLeft", "RL", "left", tyreTemperatureRearLeft < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
 		drawCell(COL[3], ROW[4], String(tyreTemperatureRearRight) + "    " + String(tyreRadiusRearRight) + "    " + String(suspHeightRearRight), "tyreTemperatureRearRight", "RR", "left", tyreTemperatureRearRight < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
-		
 	}
 
 	void drawPageTableLaps()
