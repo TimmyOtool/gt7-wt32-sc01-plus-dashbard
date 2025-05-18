@@ -16,8 +16,8 @@ const long interval = 500;
 GT7_UDP_Parser gt7Telem;
 Packet packetContent;
 
-String owner="BSR_Stefano87";
-//String owner="BSR_Melinm"; 
+//String owner="BSR_Stefano87";
+String owner="BSR_Melinm"; 
 
 
 void configModeCallback(WiFiManager *myWiFiManager)
