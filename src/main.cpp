@@ -16,6 +16,10 @@ const long interval = 500;
 GT7_UDP_Parser gt7Telem;
 Packet packetContent;
 
+String owner="BSR_Stefano87";
+//String owner="BSR_Melinm"; 
+
+
 void configModeCallback(WiFiManager *myWiFiManager)
 {
   tft.clear();
@@ -53,7 +57,8 @@ void setup()
     tft.drawJpg(&gt7, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 1);
    // tft.drawPng(&azerty, 10 , 130, 150, 150, 0, 0, 1);
     tft.drawPng(&bsr, (SCREEN_WIDTH / 2) +40 , 130, 216, 216, 0, 0, 1);
-    tft.drawString("By BSR_Melinm", 5, 305, &fonts::DejaVu12);
+
+    tft.drawString(owner, 5, 290, &fonts::DejaVu18);
     gt7.close();
     bsr.close();
     //azerty.close();
@@ -109,7 +114,7 @@ void setup()
   sleep(3);
   gt7Telem.begin(ip);
   gt7Telem.sendHeartbeat();
-  
+  display.ip = ip;
   tft.clear();
 }
 
