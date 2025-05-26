@@ -94,10 +94,6 @@ public:
 	float oilTemp;
 	float BodyHeight;
 	float suspHeight[4];
-	// std::vector<float> speedHistory;
-	// std::vector<float> positionXHistory;
-	// std::vector<float> positionYHistory;
-	// std::vector<float> positionZHistory;
 
 	int maxSpeed = 0;
 
@@ -116,8 +112,6 @@ public:
 						{ drawPageCarInfo(); });
 		pages.push_back([this]()
 						{ drawPageTableLaps(); });
-		// pages.push_back([this]()
-		// 				{ drawPageDashboard2(forceUpdate); });
 		pages.push_back([this]()
 						{ drawCreditPage(forceUpdate); });
 		pages.push_back([this]()
@@ -257,7 +251,7 @@ public:
 			{
 				previousP = currentP;
 				updateLaps = true;
-				if (checkButton(X_CENTER - 100, 70, 180, 50) && currentPage == 5)
+				if (checkButton(X_CENTER - 100, 70, 180, 50) && currentPage == 4)
 				{
 					tft.fillScreen(TFT_BLACK);
 					tft.drawCenterString("Rebooting...", X_CENTER, Y_CENTER, &fonts::DejaVu12);
@@ -265,7 +259,7 @@ public:
 					tft.fillScreen(TFT_BLACK);
 					ESP.restart();
 				}
-				if (checkButton(X_CENTER - 100, Y_CENTER + 70, 200, 50) && currentPage == 5)
+				if (checkButton(X_CENTER - 100, Y_CENTER + 70, 200, 50) && currentPage == 4)
 				{
 					WiFi.mode(WIFI_STA);
 					WiFi.disconnect();
@@ -279,10 +273,13 @@ public:
 				}
 				if (touchX <= X_CENTER / 2)
 				{
+					tft.clear();
 					currentPage--;
 				}
 				else if (touchX >= X_CENTER * 1.5)
 				{
+				
+					tft.clear();
 					currentPage++;
 				}
 				else
@@ -365,31 +362,6 @@ public:
 			drawButton(X_CENTER - 100, Y_CENTER + 70, 180, 50, "Reset Settings", TFT_RED);
 		}
 	}
-
-	void drawPageDashboard2(bool forceUpdate = false)
-	{
-		drawRpmMeter(0, 0, SCREEN_WIDTH, CELL_HEIGHT);
-		drawGear(COL[2], COL[1]);
-		drawBrakeOrThrottle(COL[3], ROW[1], CELL_WIDTH * 2, CELL_HEIGHT, throttle, "throttle", TFT_GREEN);
-		drawBrakeOrThrottle(COL[3], ROW[2], CELL_WIDTH * 2, CELL_HEIGHT, brake, "brake", TFT_RED);
-
-		drawCell(COL[0], ROW[1], bestLapTime, "bestLapTime", "Best Lap", "left", TFT_WHITE, 4, forceUpdate);
-		drawCell(COL[0], ROW[2], lastLapTime, "lastLapTime", "Last Lap", "left", TFT_WHITE, 4, forceUpdate);
-		drawCell(COL[0], ROW[3], currentLapTime, "currenLapTime", "Current Lap", "left", TFT_WHITE, 4, forceUpdate);
-
-		drawCell(COL[2], ROW[3], String(speed), "speed", "Speed", "center", TFT_WHITE, 4, forceUpdate);
-
-		// Fourth+Fifth Column (delta)
-		//	drawCell(SCREEN_WIDTH, ROW[1], sessionBestLiveDeltaSeconds, "sessionBestLiveDeltaSeconds", "Delta", "right", sessionBestLiveDeltaSeconds.indexOf('-') >= 0 ? TFT_GREEN : TFT_RED, 4, forceUpdate);
-		//	drawCell(SCREEN_WIDTH, ROW[2], sessionBestLiveDeltaProgressSeconds, "sessionBestLiveDeltaProgressSeconds", "Delta P", "right", sessionBestLiveDeltaProgressSeconds.indexOf('-') >= 0 ? TFT_GREEN : TFT_RED, 4, forceUpdate);
-
-		drawCell(COL[0], ROW[4], String(lapCount) + "/" + String(totalLaps), "lapCount", "Lap", "center", TFT_YELLOW, 4, forceUpdate);
-		drawCell(COL[1], ROW[4], String(RaceStartPosition) + "/" + String(preRaceNumCars), "position", "Position", "center", TFT_WHITE, 4, forceUpdate);
-		drawCell(COL[2], ROW[4], String(fuel), "fuel", "Fuel", "center", TFT_MAGENTA, 4, forceUpdate);
-
-		drawTyre();
-	}
-
 	void drawPageCarInfo()
 	{
 
@@ -497,9 +469,9 @@ public:
 		tft.setTextColor(TFT_WHITE);
 		tft.fillRoundRect(20, 60, 50, 100, 5, getTyreColor(tyreTemperatureFrontLeft));
 		tft.fillRoundRect(80, 60, 50, 100, 5, getTyreColor(tyreTemperatureFrontRight));
-		drawDataString(45, 140, "tyreTemperatureFrontLeft", String(tyreTemperatureFrontLeft) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
+		drawDataString(45, 140, "tyreTemperatureFrontLeft1", String(tyreTemperatureFrontLeft) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
 		// tft.drawCenterString(String(tyreTemperatureFrontLeft) + "C", 45, 140, &fonts::DejaVu12);
-		drawDataString(105, 140, "tyreTemperatureFrontRight", String(tyreTemperatureFrontRight) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
+		drawDataString(105, 140, "tyreTemperatureFrontRight1", String(tyreTemperatureFrontRight) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
 		// tft.drawCenterString(String(tyreTemperatureFrontRight) + "C", 105, 140, &fonts::DejaVu12);
 
 		tft.setTextColor(TFT_LIGHTGREY);
@@ -511,9 +483,9 @@ public:
 		tft.setTextColor(TFT_WHITE);
 		tft.fillRoundRect(20, 220, 50, 100, 5, getTyreColor(tyreTemperatureRearLeft));
 		tft.fillRoundRect(80, 220, 50, 100, 5, getTyreColor(tyreTemperatureRearRight));
-		drawDataString(45, 300, "tyreTemperatureRearLeft", String(tyreTemperatureRearLeft) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
+		drawDataString(45, 300, "tyreTemperatureRearLeft1", String(tyreTemperatureRearLeft) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
 		// tft.drawCenterString(String(tyreTemperatureRearLeft)+"C",45,300,&fonts::DejaVu12);
-		drawDataString(105, 300, "tyreTemperatureRearRight", String(tyreTemperatureRearRight) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
+		drawDataString(105, 300, "tyreTemperatureRearRight1", String(tyreTemperatureRearRight) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
 		// tft.drawCenterString(String(tyreTemperatureRearRight)+"C",105,300,&fonts::DejaVu12);
 
 		// FUEL
@@ -663,14 +635,6 @@ public:
 		tft.drawString("Fuel Lap", COL[4] + HALF_CELL_WIDTH / 3, 6, &fonts::Font2);
 	}
 
-	void drawTyre()
-	{
-		drawCell(COL[3], ROW[3], String(tyreTemperatureFrontLeft), "tyreTemperatureFrontLeft", "FL", "center", tyreTemperatureFrontLeft < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
-		drawCell(COL[4], ROW[3], String(tyreTemperatureFrontRight), "tyreTemperatureFrontRight", "FR", "center", tyreTemperatureFrontRight < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
-		drawCell(COL[3], ROW[4], String(tyreTemperatureRearLeft), "tyreTemperatureRearLeft", "RL", "center", tyreTemperatureRearLeft < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
-		drawCell(COL[4], ROW[4], String(tyreTemperatureRearRight), "tyreTemperatureRearRight", "RR", "center", tyreTemperatureRearRight < tireAlertTemp ? TFT_CYAN : TFT_RED, 4, forceUpdate);
-	}
-
 	boolean isDrawGearRpmRedRec()
 	{
 		if (engineRpm >= maxAlertRPM)
@@ -680,76 +644,6 @@ public:
 		return false;
 	}
 
-	void drawGear(int32_t x, int32_t y)
-	{
-		// draw gear only when it changes
-		if (gear.compareTo(prev_gear) != 0)
-		{
-			tft.setTextColor(isDrawGearRpmRedRec() ? TFT_RED : TFT_YELLOW, TFT_BLACK);
-			tft.setTextSize(8);
-			tft.setTextDatum(MC_DATUM);
-			tft.setCursor(x + 12, y + HALF_CELL_HEIGHT);
-			tft.print(gear);
-			tft.setTextSize(1);
-			tft.setTextDatum(TL_DATUM);
-
-			prev_gear = gear;
-		}
-	}
-
-	void drawRpmMeter(int32_t x, int32_t y, int width, int height)
-	{
-		double percent = (static_cast<double>(engineRpm) / maxAlertRPM);
-		int meterWidth = width * percent;
-		int yPlusOne = y + 1;
-		int innerWidth = width - meterWidth - 1;
-		int innerHeight = height - 4;
-
-		if (prev_rpmPercent != engineRpm)
-		{
-			int32_t color = TFT_BLACK;
-			tft.fillRect(meterWidth, yPlusOne, width, innerHeight, color);
-
-			if (isDrawGearRpmRedRec())
-			{
-				color = TFT_RED;
-			}
-			else if (engineRpm >= minAlertRPM)
-			{
-				color = TFT_ORANGE;
-			}
-			else
-			{
-				color = TFT_GREEN;
-			}
-			tft.fillRect(x, yPlusOne, meterWidth - 2, innerHeight, color);
-			tft.setTextColor(TFT_BLACK, color);
-			tft.drawString(String(engineRpm), x + (meterWidth / 2), y + 19, 4);
-			prev_rpmPercent = engineRpm;
-		}
-	}
-
-	void drawBrakeOrThrottle(int32_t x, int32_t y, int width, int height, int value, String name, int32_t color)
-	{
-		bool dataChanged = (prevData[name] != String(value)) || forceUpdate;
-		if (dataChanged)
-		{
-			double percent = (static_cast<double>(value) / 255);
-			int meterWidth = width * percent;
-			int yPlusOne = y + 1;
-			int innerWidth = width - meterWidth - 1;
-			int innerHeight = height - 4;
-			tft.fillRect(x, yPlusOne, width, innerHeight, TFT_BLACK);
-			if (value > 0)
-			{
-				tft.fillRect(x, yPlusOne, meterWidth - 2, innerHeight, color);
-				tft.setTextColor(TFT_BLACK, color);
-
-				tft.drawString(String(value), x + (meterWidth / 2), y + 19, 4);
-			}
-			prevData[name] = String(value);
-		}
-	}
 
 	void drawCell(int32_t x, int32_t y, String data, String id, String name = "Data", String align = "center", int32_t color = TFT_WHITE, int fontSize = 4, bool forceUpdate = false)
 	{
