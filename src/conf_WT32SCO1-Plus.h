@@ -23,6 +23,7 @@ SOFTWARE.
 */
 
 // SD card Working / enable it below
+#ifndef WT32_SC01_PLUS
 #define WT32_SC01_PLUS
 #define SD_SUPPORTED 
 
@@ -139,3 +140,4 @@ public:
     setPanel(&_panel_instance); 
   }
 };
+#endif
