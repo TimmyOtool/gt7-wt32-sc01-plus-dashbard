@@ -7,6 +7,7 @@
 // #include <conf_JC3248W535EN.h>
 
 #include "lap/lap.h"
+#include "button/button.h"
 #include <Arduino.h>
 #include <map>
 #include <vector>
@@ -48,6 +49,7 @@ int prev_rpmPercent = 0;
 bool updateLaps = false;
 std::vector<lap> laps;
 int maxLapHistory = 9;
+float averageFuelUsed = 0.0f;
 
 class Display
 {
@@ -102,6 +104,9 @@ public:
 	using PageFunc = std::function<void()>;
 
 	std::vector<PageFunc> pages;
+
+	Button reboot = Button(X_CENTER - 100, 70, 180, 50, "Reboot", TFT_DARKGRAY);
+	Button reset = Button(X_CENTER - 100, Y_CENTER + 70, 180, 50, "Reset Settings", TFT_RED);
 
 public:
 	Display()
@@ -193,7 +198,7 @@ public:
 				saveLap(prevlap);
 				updateLaps = true;
 				prevlap = lapCount;
-
+				calculateAverageFuelUsed();
 				dt_start = dt_now;
 			}
 
@@ -215,6 +220,30 @@ public:
 
 		brake = packetContent.packetContent.brake;
 		throttle = packetContent.packetContent.throttle;
+	}
+
+	float calculateAverageFuelUsed()
+	{
+		if (laps.size() < 2)
+		{
+			averageFuelUsed = 0.0f;
+			return averageFuelUsed;
+		}
+		float totalFuelUsed = 0.0f;
+		for (size_t i = 1; i < laps.size(); i++)
+		{
+			totalFuelUsed += laps[i].fuelUsed;
+		}
+		averageFuelUsed = totalFuelUsed / (laps.size() - 1);
+	}
+	float numberOfLapsRemaingWithFuel()
+	{
+		if (averageFuelUsed <= 0.0f)
+		{
+			return 0.0f; // Avoid division by zero
+		}
+		float lapsRemaining = fuel / averageFuelUsed;
+		return lapsRemaining;
 	}
 
 	String convertTime(int32_t toConvert)
@@ -251,7 +280,7 @@ public:
 			{
 				previousP = currentP;
 				updateLaps = true;
-				if (checkButton(X_CENTER - 100, 70, 180, 50) && currentPage == 4)
+				if (reboot.isClicked(touchX,touchY) && currentPage == 4)
 				{
 					tft.fillScreen(TFT_BLACK);
 					tft.drawCenterString("Rebooting...", X_CENTER, Y_CENTER, &fonts::DejaVu12);
@@ -259,7 +288,7 @@ public:
 					tft.fillScreen(TFT_BLACK);
 					ESP.restart();
 				}
-				if (checkButton(X_CENTER - 100, Y_CENTER + 70, 200, 50) && currentPage == 4)
+				if (reboot.isClicked(touchX,touchY) && currentPage == 4)
 				{
 					WiFi.mode(WIFI_STA);
 					WiFi.disconnect();
@@ -309,22 +338,22 @@ public:
 
 	void idle() {}
 
-	// draw a button whith a label
-	void drawButton(int x, int y, int w, int h, String label, uint16_t color = TFT_WHITE)
-	{
-		tft.fillRoundRect(x, y, w, h, 5, color);
-		tft.setTextColor(TFT_WHITE);
-		tft.drawCenterString(label, x + (w / 2), y + (h / 2), &fonts::DejaVu12);
-	}
-	// check if click on a button
-	bool checkButton(int x, int y, int w, int h)
-	{
-		if (touchX >= x && touchX <= x + w && touchY >= y && touchY <= y + h)
-		{
-			return true;
-		}
-		return false;
-	}
+	// // draw a button whith a label
+	// void drawButton(int x, int y, int w, int h, String label, uint16_t color = TFT_WHITE)
+	// {
+	// 	tft.fillRoundRect(x, y, w, h, 5, color);
+	// 	tft.setTextColor(TFT_WHITE);
+	// 	tft.drawCenterString(label, x + (w / 2), y + (h / 2), &fonts::DejaVu12);
+	// }
+	// // check if click on a button
+	// bool checkButton(int x, int y, int w, int h)
+	// {
+	// 	if (touchX >= x && touchX <= x + w && touchY >= y && touchY <= y + h)
+	// 	{
+	// 		return true;
+	// 	}
+	// 	return false;
+	// }
 
 	void drawDebugPage()
 	{
@@ -354,12 +383,12 @@ public:
 		{
 			tft.fillScreen(TFT_BLACK);
 			tft.setTextColor(TFT_WHITE);
-			drawButton(X_CENTER - 100, 70, 180, 50, "Reboot", TFT_DARKGRAY);
+			reboot.draw(tft);
 			tft.drawCenterString("GT7 Dashboard", X_CENTER, Y_CENTER - 20, &fonts::DejaVu12);
 			tft.drawCenterString("by", X_CENTER, Y_CENTER + 10, &fonts::DejaVu12);
 			tft.drawCenterString("BSR_Melinm", X_CENTER, Y_CENTER + 30, &fonts::DejaVu12);
 			tft.drawCenterString("2025", X_CENTER, Y_CENTER + 50, &fonts::DejaVu12);
-			drawButton(X_CENTER - 100, Y_CENTER + 70, 180, 50, "Reset Settings", TFT_RED);
+			reset.draw(tft);
 		}
 	}
 	void drawPageCarInfo()
@@ -488,6 +517,15 @@ public:
 		drawDataString(105, 300, "tyreTemperatureRearRight1", String(tyreTemperatureRearRight) + " C", "center", TFT_BLUE, TFT_WHITE, &fonts::DejaVu12);
 		// tft.drawCenterString(String(tyreTemperatureRearRight)+"C",105,300,&fonts::DejaVu12);
 
+
+		//lapsremainging with fuel
+		float lapsRemaining = numberOfLapsRemaingWithFuel();
+		//tft.setTextColor(TFT_OLIVE);
+		//tft.drawRightString("Laps", 200, 230, &fonts::DejaVu18);
+
+		drawDataString(260, 230, "lapsRemaining", String(lapsRemaining, 1), "right", TFT_BLACK, (lapsRemaining >= 2.0f) ? TFT_GREEN : TFT_RED , &fonts::DejaVu24);
+		tft.setTextColor(TFT_WHITE);
+
 		// FUEL
 		tft.drawRightString("Fuel", 200, 260, &fonts::DejaVu18);
 		tft.setTextColor(TFT_GREEN);
@@ -502,6 +540,7 @@ public:
 		}
 		drawDataString(250, 290, "fuel", String(fuel) + "%", "center", TFT_WHITE, TFT_BLACK, &fonts::DejaVu18);
 		tft.setTextColor(TFT_WHITE);
+	
 
 		// NONE
 		tft.fillRoundRect(145, 30, 15, 110, 5, TFT_LIGHTGREY);
@@ -582,7 +621,12 @@ public:
 	int getPercentageWidth(int value, int max, int width)
 	{
 		double percent = (static_cast<double>(value) / max);
-		return width - (width * percent);
+		int res= width - (width * percent);
+		if (res < 0 || res > width)
+		{
+			res = 0;
+		}
+		return res;
 	}
 
 	boolean dataChange(String name, String value)
